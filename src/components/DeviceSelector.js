@@ -1,20 +1,27 @@
-import React, { useState } from 'react';
-import { View, StyleSheet, Text } from 'react-native';
+import React, { useContext, useState, useEffect } from 'react';
+import { View, StyleSheet, Dimensions } from 'react-native';
 import RNPickerSelect from 'react-native-picker-select';
-import { getResponsiveFontSize, getResponsivePadding, getResponsiveMargin, getResponsiveIconSize } from '../utils/utils';
+import { getResponsiveFontSize, getResponsivePadding, getResponsiveIconSize } from '../utils/utils';
+import { UserContext } from '../context/UserContext';
+
+const { width: screenWidth } = Dimensions.get('window');
+const isTablet = screenWidth >= 768;
 
 const DeviceSelector = () => {
-  const [selectedDevice, setSelectedDevice] = useState("device1");
+  const { devices } = useContext(UserContext); // 기기 목록을 컨텍스트에서 가져옴
+  const [selectedDevice, setSelectedDevice] = useState(devices[0]?.serialNumber || '');
+
+  useEffect(() => {
+    if (devices.length > 0) {
+      setSelectedDevice(devices[0].serialNumber);
+    }
+  }, [devices]);
 
   return (
     <View style={styles.deviceSelector}>
       <RNPickerSelect
         onValueChange={(value) => setSelectedDevice(value)}
-        items={[
-          { label: '보티 연구소', value: 'device1' },
-          { label: '디바이스 2', value: 'device2' },
-          { label: '디바이스 3', value: 'device3' },
-        ]}
+        items={devices.map(device => ({ label: device.nickname, value: device.serialNumber }))}
         style={{
           inputIOS: styles.inputIOS,
           inputAndroid: styles.inputAndroid,
@@ -32,9 +39,8 @@ const DeviceSelector = () => {
 
 const styles = StyleSheet.create({
   deviceSelector: {
-    // flex: 1,
     justifyContent: 'center',
-    width: '80%'
+    width: '80%',
   },
   inputIOS: {
     fontSize: getResponsiveFontSize(20),
@@ -49,13 +55,13 @@ const styles = StyleSheet.create({
   inputAndroid: {
     fontSize: getResponsiveFontSize(20),
     fontWeight: 'bold',
-    paddingHorizontal: getResponsivePadding(10),
+    paddingHorizontal: getResponsivePadding(0),
     paddingVertical: getResponsivePadding(8),
     color: 'black',
   },
   iconContainer: {
-    top: 20,
-    left: 130,
+    top: '43%',
+    right: 10,
   },
   icon: {
     width: 0,

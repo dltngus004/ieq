@@ -3,8 +3,8 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView } from 
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { getResponsiveFontSize, getResponsivePadding, getResponsiveMargin, getResponsiveIconSize, getResponsiveHeight } from '../utils/utils'; // 유틸리티 함수 임포트
 
-const SurveyScreen = ({ navigation }) => {
-  const [birthDate, setBirthDate] = useState('');
+const SurveyScreen = ({ navigation, route }) => {
+  const [birthDate, setBirthDate] = useState(route.params.BirthDay || '');
   const [environment, setEnvironment] = useState('');
   const [customEnvironment, setCustomEnvironment] = useState('');
   const [selectedItems, setSelectedItems] = useState([]);
@@ -26,11 +26,30 @@ const SurveyScreen = ({ navigation }) => {
   };
 
   const handleSubmit = () => {
-    // 제출 로직
-    console.log('Birth Date:', birthDate);
-    console.log('Environment:', environment || customEnvironment);
-    console.log('Selected Items:', selectedItems);
-    navigation.navigate('MainTabs', { screen: '홈', params: { screen: 'Home' } }); // MainTabs로 이동하여 Home을 기본 화면으로 보여줌
+    const surveyData = {
+      UserName: route.params.UserName,
+      BirthDay: birthDate,
+      Gender: route.params.Gender,
+      Street: route.params.Street,
+      DetailStreet: route.params.DetailStreet,
+      NickName: route.params.NickName,
+      ImgRoot: route.params.ImgRoot,
+      Environment: environment || customEnvironment,
+      SelectedItems: selectedItems
+    };
+
+    console.log('Survey Data:', surveyData);
+
+    navigation.navigate('MainTabs', {
+      screen: '홈',
+      params: { 
+        screen: 'Home',
+        params: { 
+          nickname: route.params.NickName,
+          profileImage: route.params.ImgRoot
+        } 
+      }
+    }); // MainTabs로 이동하여 Home을 기본 화면으로 보여줌
   };
 
   return (

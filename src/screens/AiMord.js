@@ -1,17 +1,27 @@
-import React from 'react';
-import { View, ScrollView, StyleSheet, Image, Dimensions } from 'react-native';
+import React, { useContext, useLayoutEffect } from 'react';
+import { View, ScrollView, StyleSheet, Image, Text, Dimensions } from 'react-native';
 import DeviceSelector from '../components/DeviceSelector';
 import NotificationIcon from '../components/NotificationIcon';
 import AiAnalysisComponent from '../components/AiAnalysisComponent';
-import AiDiaryComponent from '../components/AiDiaryComponent.js';
-import { getResponsiveFontSize, getResponsivePadding, getResponsiveMargin, getResponsiveIconSize, getResponsiveImageSize } from '../utils/utils'; // 유틸리티 함수 임포트
+import AiDiaryComponent from '../components/AiDiaryComponent';
+import { getResponsiveFontSize, getResponsivePadding, getResponsiveMargin, getResponsiveWidth, getResponsiveHeight } from '../utils/utils';
+import { UserContext } from '../context/UserContext';
 
-// 임시 이미지 경로
 import deviceImage from '../assets/images/device_img.png';
 
-const { width, height } = Dimensions.get('window');
+const { width: screenWidth, height } = Dimensions.get('window');
+const isTablet = screenWidth >= 768;
 
-const AiMordHome = ({ navigation, moodItems, setMoodItems }) => {
+const AiMordHome = ({ navigation, route, moodItems, setMoodItems }) => {
+  const { serialNumber } = useContext(UserContext);
+
+  // 뒤로 가기 버튼 제거
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerLeft: () => null,
+    });
+  }, [navigation]);
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -19,10 +29,16 @@ const AiMordHome = ({ navigation, moodItems, setMoodItems }) => {
         <DeviceSelector />
         <NotificationIcon navigation={navigation} hasNotifications={true} />
       </View>
-      <ScrollView contentContainerStyle={styles.scrollContainer}>
-        <AiAnalysisComponent />
-        <AiDiaryComponent moodItems={moodItems} setMoodItems={setMoodItems} />
-      </ScrollView>
+      {serialNumber ? (
+        <ScrollView contentContainerStyle={styles.scrollContainer}>
+          <AiAnalysisComponent serialNumber={serialNumber} />
+          <AiDiaryComponent moodItems={moodItems} setMoodItems={setMoodItems} />
+        </ScrollView>
+      ) : (
+        <View style={styles.noDeviceContainer}>
+          <Text style={styles.noDeviceText}>기기 등록을 해주세요.</Text>
+        </View>
+      )}
     </View>
   );
 };
@@ -36,14 +52,23 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: getResponsiveMargin(20),
+    marginBottom: 10,
   },
   image: {
-    width: getResponsiveImageSize(80),
-    height: getResponsiveImageSize(30),
+    width: isTablet ? getResponsiveWidth(10) : getResponsiveWidth(15),
+    height: isTablet ? getResponsiveHeight(3) : getResponsiveHeight(5),
   },
   scrollContainer: {
     paddingBottom: getResponsivePadding(20),
+  },
+  noDeviceContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  noDeviceText: {
+    fontSize: getResponsiveFontSize(18),
+    color: '#000',
   },
 });
 

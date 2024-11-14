@@ -11,11 +11,22 @@ buildscript {
         google()
         mavenCentral()
     }
-    dependencies {
-        classpath("com.android.tools.build:gradle")
-        classpath("com.facebook.react:react-native-gradle-plugin")
-        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin")
+    dependencies {  
+        classpath("com.android.tools.build:gradle:8.0.2")
+        classpath("com.facebook.react:react-native-gradle-plugin:0.72.0") // react-native 버전에 맞는 정확한 버전 사용
+        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion")
+        classpath 'com.google.gms:google-services:4.3.15' // 최신 버전
     }
 }
 
 apply plugin: "com.facebook.react.rootproject"
+
+allprojects {
+     repositories {
+        google()
+        mavenCentral() // jcenter 대신 사용
+        maven { url 'https://www.jitpack.io' }
+        maven { url 'https://devrepo.kakao.com/nexus/content/groups/public/' }
+        // 필요에 따라 다른 저장소 추가
+    }
+}

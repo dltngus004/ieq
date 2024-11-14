@@ -1,9 +1,11 @@
 package com.ieqproject
 
+import android.os.Bundle
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate
 import com.facebook.react.defaults.DefaultNewArchitectureEntryPoint.fabricEnabled
 import com.facebook.react.defaults.DefaultReactActivityDelegate
+import com.kakao.sdk.common.KakaoSdk // Kakao SDK import
 
 class MainActivity : ReactActivity() {
 
@@ -19,4 +21,11 @@ class MainActivity : ReactActivity() {
    */
   override fun createReactActivityDelegate(): ReactActivityDelegate =
       DefaultReactActivityDelegate(this, mainComponentName, fabricEnabled)
+      
+  override fun onCreate(savedInstanceState: Bundle?) {
+    super.onCreate(savedInstanceState)
+    
+    // Kakao SDK 초기화
+    KakaoSdk.init(this, getString(R.string.kakao_app_key))
+  }
 }

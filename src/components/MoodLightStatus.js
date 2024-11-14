@@ -11,45 +11,53 @@ import {
   getResponsiveHeight 
 } from '../utils/utils';
 
-// 임시 이미지 경로
 import deviceImage from '../assets/images/device_img.png';
 
-const MoodLightStatus = ({ deviceName }) => {
+const MoodLightStatus = ({ deviceName, serialNumber }) => {
   const navigation = useNavigation();
   const { isEnabled, toggleMoodLight, brightness, color } = useMoodLight();
 
   const handleToggleSwitch = async () => {
     const newEnabled = !isEnabled;
-    toggleMoodLight(newEnabled);
-    if (newEnabled) {
-      updateLedSettings(brightness || 255, color);
-    } else {
-      updateLedSettings(0, color);
+
+    try {
+      // 먼저 서버에 상태를 업데이트한 후 상태를 변경
+      await updateLedSettings(newEnabled ? brightness || 255 : 0, color);
+      toggleMoodLight(newEnabled);
+    } catch (error) {
+      // 서버 요청이 실패하면 상태를 변경하지 않음
+      console.error('Failed to toggle mood light', error);
+      Alert.alert('Error', 'Failed to update mood light status');
     }
   };
 
   const updateLedSettings = async (newBrightness, newColor) => {
     try {
       const requestData = {
-        UserId: 'IEQAAAB101TEST240425',
+        UserId: serialNumber,
         IEQAPIBaseModels: [
           { AppReq: 'LEDBright', AppReq2: newBrightness.toString() },
-          { AppReq: 'LEDCOLOR', AppReq2: newColor.slice(1) }
+          { AppReq: 'LEDMODE', AppReq2: '1' },
+          { AppReq: 'LEDINDEX', AppReq2: '0' },
+          { AppReq: 'LEDCOLOR', AppReq2: newColor.slice(1) },
+          { AppReq: 'LEDConfigSave', AppReq2: '0' }
         ],
       };
       const response = await axios.post('http://monitoring.votylab.com/IEQ/IEQ/SendIEQLED', requestData);
-      if (response.status === 200 && response.data.statusCode === 200) {
-        // 상태 업데이트 성공
-      } else {
-        Alert.alert('Error', 'Failed to update LED settings');
+      
+      if (response.status !== 200 || response.data.statusCode !== 200) {
+        throw new Error('Failed to update LED settings on server');
       }
+
+      console.log('LED settings updated successfully');
     } catch (error) {
-      Alert.alert('Network Error', 'Failed to update LED settings');
+      console.error('Network Error', error);
+      throw new Error('Failed to update LED settings');
     }
   };
 
   const goToDetails = () => {
-    navigation.navigate('MoodLightDetails', { deviceName });
+    navigation.navigate('MoodLightDetails', { deviceName, serialNumber });
   };
 
   return (
@@ -79,7 +87,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginVertical: getResponsiveMargin(10),
     padding: getResponsivePadding(10),
-    backgroundColor: '#f9f9f9',
+    backgroundColor: '#ffffff',
     borderRadius: 10,
     shadowColor: '#000',
     shadowOpacity: 0.1,
@@ -88,7 +96,7 @@ const styles = StyleSheet.create({
   },
   image: {
     width: getResponsiveWidth(10), // 적절한 비율로 조정
-    height: getResponsiveHeight(3), // 적절한 비율로 조정 이게맞나..
+    height: getResponsiveHeight(3), // 적절한 비율로 조정
     marginRight: getResponsiveMargin(15),
   },
   infoContainer: {
@@ -115,6 +123,5 @@ const styles = StyleSheet.create({
     color: '#7F7F7F', // OFF 상태일 때 회색
   },
 });
-
 
 export default MoodLightStatus;

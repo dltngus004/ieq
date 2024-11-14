@@ -1,6 +1,15 @@
 import React from 'react';
-import { View, Image, TouchableOpacity, StyleSheet } from 'react-native';
-import { getResponsiveImageSize, getResponsivePadding, getResponsiveMargin } from '../utils/utils';
+import { View, Image, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
+import { 
+  getResponsiveFontSize, 
+  getResponsivePadding, 
+  getResponsiveMargin, 
+  getResponsiveWidth, 
+  getResponsiveHeight 
+} from '../utils/utils';
+
+const { width: screenWidth } = Dimensions.get('window');
+const isTablet = screenWidth >= 768;
 
 const NotificationIcon = ({ navigation, hasNotifications }) => {
   const imageUrls = [
@@ -24,17 +33,17 @@ const NotificationIcon = ({ navigation, hasNotifications }) => {
 
 const styles = StyleSheet.create({
   notification: {
-    width: getResponsiveImageSize(30),
-    height: getResponsiveImageSize(30),
+    width: isTablet ? getResponsiveWidth(3) : getResponsiveWidth(6),
+    height: isTablet ? getResponsiveHeight(3) : getResponsiveHeight(6),
   },
   notificationBadge: {
     position: 'absolute',
     right: getResponsiveMargin(-4),
-    top: getResponsiveMargin(-4),
+    top: getResponsiveMargin(1),
     backgroundColor: 'red',
-    borderRadius: 8,
-    width: getResponsiveImageSize(14),
-    height: getResponsiveImageSize(14),
+    borderRadius: 100,
+    width: isTablet ? getResponsiveWidth(1.2) : getResponsiveWidth(2),
+    height: isTablet ? getResponsiveHeight(0.8) : getResponsiveHeight(1.5),
     justifyContent: 'center',
     alignItems: 'center',
   },

@@ -47,10 +47,10 @@ const AirQualityComponent = () => {
         setAirQualityStatus(getPm10Status(pm10Value)); // 공기질 상태를 미세먼지 상태와 동일하게 설정
         setPm10Status(getPm10Status(pm10Value));
       } else {
-        console.error('Unexpected air quality response format:', result);
+        // console.error('Unexpected air quality response format:', result);
       }
     } catch (error) {
-      console.error('Error fetching air quality:', error);
+      // console.error('Error fetching air quality:', error);
     }
   };
 

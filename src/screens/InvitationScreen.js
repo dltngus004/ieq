@@ -3,7 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, Modal, Image } fro
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { getResponsiveFontSize, getResponsivePadding, getResponsiveMargin, getResponsiveIconSize, getResponsiveImageSize } from '../utils/utils'; // 유틸리티 함수 임포트
 
-const InvitationScreen = ({ navigation }) => {
+const InvitationScreen = ({ navigation, route }) => {
   const [groupName, setGroupName] = useState('');
   const [isModalVisible, setIsModalVisible] = useState(false);
 
@@ -14,7 +14,11 @@ const InvitationScreen = ({ navigation }) => {
 
   const handleSkip = () => {
     // 다음 스텝으로 건너뛰기
-    navigation.navigate('SurveyScreen'); // 다음 스텝으로 이동
+    navigation.navigate('SurveyScreen', {
+      ...route.params, // 이전 화면의 모든 정보 포함
+      nickname: route.params.NickName,
+      profileImage: route.params.ImgRoot
+    }); // 다음 스텝으로 이동
   };
 
   return (

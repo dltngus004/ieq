@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image, Dimensions } from 'react-native';
 import { 
   getResponsiveFontSize, 
   getResponsivePadding, 
@@ -8,24 +8,23 @@ import {
   getResponsiveHeight 
 } from '../utils/utils';
 
+const { width: screenWidth } = Dimensions.get('window');
+const isTablet = screenWidth >= 768;
+
 const SecondStep = ({ navigation }) => {
   return (
     <View style={styles.container}>
       <View style={styles.stepContainer}>
-        <TouchableOpacity style={styles.stepButtonInactive}>
-          <Text style={styles.stepTextInactive}>01</Text>
+        <TouchableOpacity style={styles.stepButtonActive}>
+          <Text style={styles.stepTextActive}>01</Text>
         </TouchableOpacity>
         <View style={styles.line} />
-        <TouchableOpacity style={styles.stepButtonActive}>
-          <Text style={styles.stepTextActive}>02</Text>
+        <TouchableOpacity style={styles.stepButtonInactive}>
+          <Text style={styles.stepTextInactive}>02</Text>
         </TouchableOpacity>
         <View style={styles.line} />
         <TouchableOpacity style={styles.stepButtonInactive}>
           <Text style={styles.stepTextInactive}>03</Text>
-        </TouchableOpacity>
-        <View style={styles.line} />
-        <TouchableOpacity style={styles.stepButtonInactive}>
-          <Text style={styles.stepTextInactive}>04</Text>
         </TouchableOpacity>
       </View>
       <View style={styles.contentContainer}>
@@ -68,12 +67,12 @@ const styles = StyleSheet.create({
   stepContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
-    alignItems: 'center', // 버튼과 선을 수직으로 가운데 정렬
+    alignItems: 'center',
     marginVertical: getResponsiveMargin(20),
   },
   stepButtonActive: {
-    width: getResponsiveWidth(12),
-    height: getResponsiveWidth(12),
+    width: isTablet ? getResponsiveWidth(6) : getResponsiveWidth(12),
+    height: isTablet ? getResponsiveHeight(4) : getResponsiveHeight(9),
     backgroundColor: '#1e90ff',
     alignItems: 'center',
     justifyContent: 'center',
@@ -83,12 +82,12 @@ const styles = StyleSheet.create({
     borderColor: '#1e90ff',
   },
   stepButtonInactive: {
-    width: getResponsiveWidth(12),
-    height: getResponsiveWidth(12),
+    width: isTablet ? getResponsiveWidth(6) : getResponsiveWidth(12),
+    height: isTablet ? getResponsiveHeight(4) : getResponsiveHeight(9),
     borderWidth: 2,
     borderColor: '#ccc',
-    alignItems: 'center',
     justifyContent: 'center',
+    alignItems: 'center',
     borderRadius: getResponsiveWidth(6),
     marginHorizontal: getResponsiveMargin(2),
   },
@@ -129,8 +128,8 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   image: {
-    width: getResponsiveWidth(80), // 80% 너비 설정
-    height: getResponsiveHeight(30), // 30% 높이 설정
+    width: isTablet ? getResponsiveWidth(30) : getResponsiveWidth(80),
+    height: isTablet ? getResponsiveHeight(20) : getResponsiveHeight(30),
     resizeMode: 'contain',
   },
   buttonContainer: {

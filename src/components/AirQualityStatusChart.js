@@ -1,223 +1,235 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, Alert, Dimensions, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, Dimensions, ScrollView } from 'react-native';
 import axios from 'axios';
-import { LineChart } from 'react-native-chart-kit';
-import { 
-  getResponsiveFontSize, 
-  getResponsivePadding, 
-  getResponsiveMargin 
-} from '../utils/utils';
+import Svg, { G, Rect, Text as SvgText, Line, Defs, LinearGradient, Stop } from 'react-native-svg';
+import * as d3 from 'd3-scale';
+import * as d3Array from 'd3-array';
+import { getResponsiveFontSize, getResponsivePadding, getResponsiveMargin } from '../utils/utils';
 
-const AirQualityStatusChart = ({ label, dataType, timeRange }) => {
+const AirQualityStatusChart = ({ label, dataType, timeRange, serialNumber }) => {
   const [loading, setLoading] = useState(false);
   const [chartData, setChartData] = useState([]);
+  const [error, setError] = useState(null);
 
   const fetchData = async () => {
     setLoading(true);
-    let appReq2;
-    switch (timeRange) {
-      case 'hourly':
-        appReq2 = '12';
-        break;
-      case 'weekly':
-        appReq2 = '168';
-        break;
-      case 'monthly':
-        appReq2 = '720';
-        break;
-      default:
-        appReq2 = '12';
+    setError(null);
+
+    let requestData;
+    let url;
+    if (timeRange === 'hourly') {
+      url = 'http://monitoring.votylab.com/IEQ/IEQ/GetIEQLastDatasAVGToSN';
+      requestData = {
+        UserId: serialNumber,
+        AppReq: dataType,
+        AppReq2: '12',
+      };
+    } else {
+      url = 'http://monitoring.votylab.com/IEQ/IEQ/GetIEQLastAVGOldDatasToSN';
+      let appReq2;
+      switch (timeRange) {
+        case 'weekly':
+          appReq2 = '168';
+          break;
+        case 'monthly':
+          appReq2 = '720';
+          break;
+        default:
+          appReq2 = '12';
+      }
+      requestData = {
+        UserId: serialNumber,
+        AppReq: dataType,
+        AppReq2: appReq2,
+      };
     }
-    const requestData = {
-      UserId: 'IEQAAAB101TEST240426',
-      AppReq: dataType,
-      AppReq2: appReq2,
-    };
-    console.log('Sending request with:', requestData);
+
+    console.log('요청 데이터:', JSON.stringify(requestData, null, 2));
 
     try {
-      const response = await axios.post('http://monitoring.votylab.com/IEQ/IEQ/GetIEQLastDatasAVGToSN', requestData);
-
+      const response = await axios.post(url, requestData);
       const data = response.data;
-      console.log('Response data:', data);
+
+      console.log('응답 데이터:', JSON.stringify(data, null, 2));
 
       const { newDevices } = data;
       if (newDevices && newDevices[dataType]) {
-        console.log(`${dataType}:`, JSON.stringify(newDevices[dataType], null, 2));
-        const sortedData = newDevices[dataType].sort((a, b) => new Date(a.writeDate) - new Date(b.writeDate));
-        setChartData(sortedData);
+        const now = new Date();
+        const filteredData = newDevices[dataType].filter(device => new Date(device.writeDate) <= now);
+        if (filteredData.length > 0) {
+          const sortedData = filteredData.sort((a, b) => new Date(a.writeDate) - new Date(b.writeDate));
+          const processedData = sortedData.map(dataPoint => ({
+            writeDate: dataPoint.writeDate,
+            pvDataAvg: isNaN(dataPoint.pvDataAvg) ? 0 : parseFloat(dataPoint.pvDataAvg.toFixed(1))
+          }));
+          setChartData(processedData);
+        } else {
+          setError(`해당 유형(${dataType})의 데이터가 없습니다.`);
+        }
       } else {
-        Alert.alert('Data fetch error:', 'No data available for this type');
+        setError('데이터가 없습니다.');
       }
     } catch (error) {
-      console.error('Error fetching data:', error);
-      Alert.alert('Error fetching data:', `Error: ${error.message}\nStatus: ${error.response?.status}\nData: ${JSON.stringify(error.response?.data)}`);
+      console.log('데이터 요청 오류:', error);
+      setError(`오류: ${error.message}`);
     }
+
     setLoading(false);
   };
 
   useEffect(() => {
     fetchData();
-  }, [dataType, timeRange]);
-
-  if (loading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#0000ff" />
-      </View>
-    );
-  }
+  }, [timeRange, dataType]);
 
   const formatLabel = (dateString) => {
     const date = new Date(dateString);
     if (timeRange === 'hourly') {
       return date.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
     } else if (timeRange === 'weekly') {
-      return date.toLocaleDateString('ko-KR', { weekday: 'short' });
+      return date.toLocaleDateString('ko-KR', { weekday: 'short', month: 'numeric', day: 'numeric' });
     } else if (timeRange === 'monthly') {
-      return date.toLocaleDateString('ko-KR', { month: 'short' });
+      return date.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' });
     }
     return date.toLocaleString('ko-KR');
   };
 
+  const getChartData = () => {
+    if (timeRange === 'weekly') {
+      const weeklyData = new Array(7).fill(null).map(() => []);
+      chartData.forEach(dataPoint => {
+        const day = new Date(dataPoint.writeDate).getDay();
+        weeklyData[day].push(dataPoint.pvDataAvg);
+      });
+
+      console.log('주간 데이터:', weeklyData);
+
+      const now = new Date();
+      const lastWeekData = new Array(7).fill(0);
+
+      for (let i = 0; i < 7; i++) {
+        const dayIndex = (now.getDay() - 6 + i + 7) % 7;
+        if (weeklyData[dayIndex].length > 0) {
+          const avg = weeklyData[dayIndex].reduce((a, b) => a + b, 0) / weeklyData[dayIndex].length;
+          lastWeekData[i] = parseFloat(avg.toFixed(1));
+        }
+      }
+
+      console.log('최종 차트 데이터:', lastWeekData);
+
+      return lastWeekData;
+    } else if (timeRange === 'monthly') {
+      const monthlyData = new Array(12).fill(null).map(() => []);
+      chartData.forEach(dataPoint => {
+        const month = new Date(dataPoint.writeDate).getMonth();
+        monthlyData[month].push(dataPoint.pvDataAvg);
+      });
+
+      return monthlyData.map(monthData => {
+        if (monthData.length) {
+          const avg = monthData.reduce((a, b) => a + b, 0) / monthData.length;
+          return parseFloat(avg.toFixed(1));
+        }
+        return 0;
+      });
+    }
+    return chartData.map(dataPoint => dataPoint.pvDataAvg);
+  };
+
   const getChartLabels = () => {
-    if (timeRange === 'hourly') {
-      return chartData
-        .filter((dataPoint) => new Date(dataPoint.writeDate).getHours() >= 3)
-        .map((dataPoint) => formatLabel(dataPoint.writeDate));
-    } else if (timeRange === 'weekly') {
-      return ['일', '월', '화', '수', '목', '금', '토'];
+    if (timeRange === 'weekly') {
+      const now = new Date();
+      const labels = [];
+      for (let i = 0; i < 7; i++) {
+        const pastDay = new Date(now);
+        pastDay.setDate(now.getDate() - 6 + i);
+        const dayLabel = pastDay.toLocaleDateString('ko-KR', { weekday: 'short', month: 'numeric', day: 'numeric' });
+        labels.push(dayLabel);
+      }
+      return labels;
     } else if (timeRange === 'monthly') {
       return ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'];
     }
-    return [];
+    return chartData.map(dataPoint => formatLabel(dataPoint.writeDate));
   };
 
-  const getWeeklyData = () => {
-    const weekData = new Array(7).fill(null);
-    const dayCounts = new Array(7).fill(0);
+  const renderBarChart = () => {
+    const chartData = getChartData().map(d => (isNaN(d) ? 0 : d));
+    const labels = getChartLabels();
+    const width = Math.max(labels.length * 40, Dimensions.get('window').width);
+    const height = 300;
+    const margin = { top: 20, right: 20, bottom: 60, left: 50 };
 
-    chartData.forEach((dataPoint) => {
-      const date = new Date(dataPoint.writeDate);
-      const day = date.getDay();
-      if (weekData[day] === null) {
-        weekData[day] = dataPoint.pvDataAvg;
-      } else {
-        weekData[day] += dataPoint.pvDataAvg;
-      }
-      dayCounts[day]++;
-    });
+    const x = d3.scaleBand()
+      .domain(labels)
+      .range([margin.left, width - margin.right])
+      .padding(0.4);
 
-    for (let i = 0; i < weekData.length; i++) {
-      if (weekData[i] !== null) {
-        weekData[i] /= dayCounts[i];
-      }
-    }
+    const y = d3.scaleLinear()
+      .domain([0, d3Array.max(chartData)])
+      .nice()
+      .range([height - margin.bottom, margin.top]);
 
-    return weekData.map((value) => dataType === 'AQI' ? Math.round(value) : value); // 반올림하여 정수로 변환 (AQI일 경우)
-  };
-
-  const getMonthlyData = () => {
-    const currentMonth = new Date().getMonth(); // 현재 월
-    const monthData = new Array(12).fill(null);
-    const monthCounts = new Array(12).fill(0);
-
-    chartData.forEach((dataPoint) => {
-      const date = new Date(dataPoint.writeDate);
-      const month = date.getMonth();
-      if (month <= currentMonth) { // 현재 월까지의 데이터만 포함
-        if (monthData[month] === null) {
-          monthData[month] = dataPoint.pvDataAvg;
-        } else {
-          monthData[month] += dataPoint.pvDataAvg;
-        }
-        monthCounts[month]++;
-      }
-    });
-
-    for (let i = 0; i < monthData.length; i++) {
-      if (monthData[i] !== null) {
-        monthData[i] /= monthCounts[i];
-      }
-    }
-
-    return monthData.map((value) => dataType === 'AQI' ? Math.round(value) : value); // 반올림하여 정수로 변환 (AQI일 경우)
-  };
-
-  const getChartData = () => {
-    if (timeRange === 'weekly') {
-      return getWeeklyData();
-    } else if (timeRange === 'monthly') {
-      return getMonthlyData();
-    }
-    return chartData.map((dataPoint) => dataType === 'AQI' ? Math.round(dataPoint.pvDataAvg) : dataPoint.pvDataAvg); // 반올림하여 정수로 변환 (AQI일 경우)
-  };
-
-  const getYMinValue = () => {
-    if (dataType === 'AQI') {
-      return 1;
-    }
-    return 0;
-  };
-
-  const getYMaxValue = () => {
-    if (dataType === 'AQI') {
-      return 5;
-    }
-    return undefined; // 기본 최대값 사용
-  };
-
-  const data = {
-    labels: getChartLabels(),
-    datasets: [
-      {
-        data: getChartData(),
-      },
-    ],
+    return (
+      <ScrollView horizontal>
+        <Svg width={width} height={height}>
+          <Defs>
+            <LinearGradient id="barGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+              <Stop offset="0%" stopColor="#2b7ddb" />
+              <Stop offset="100%" stopColor="#1b48dd" />
+            </LinearGradient>
+          </Defs>
+          <G>
+            {y.ticks(5).map((tick, i) => (
+              <G key={i} transform={`translate(0, ${y(tick)})`}>
+                <Line x1={margin.left} x2={width - margin.right} stroke="#e0e0e0" />
+                <SvgText x={margin.left - 10} fontSize={10} fill="#000" textAnchor="end" dy="0.32em">
+                  {tick}
+                </SvgText>
+              </G>
+            ))}
+          </G>
+          <G>
+            {chartData.map((d, i) => (
+              <Rect
+                key={i}
+                x={x(labels[i])}
+                y={y(d)}
+                width={x.bandwidth()}
+                height={height - margin.bottom - y(d)}
+                fill="url(#barGradient)"
+              />
+            ))}
+          </G>
+          <G>
+            {labels.map((d, i) => (
+              <G key={i} transform={`translate(${x(d)}, 0)`}>
+                <Line y1={margin.top} y2={height - margin.bottom} stroke="#ffffff" />
+                <SvgText
+                  y={height - margin.bottom + 20}
+                  fontSize={10}
+                  fill="#000"
+                  textAnchor="middle"
+                >
+                  {d}
+                </SvgText>
+              </G>
+            ))}
+          </G>
+        </Svg>
+      </ScrollView>
+    );
   };
 
   return (
     <View style={styles.container}>
-      {chartData.length > 0 ? (
-        <>
-          <View>
-            <ScrollView horizontal>
-              <LineChart
-                data={data}
-                width={Math.max(chartData.length * 40, Dimensions.get('window').width)}
-                height={300}
-                yAxisLabel=""
-                yAxisSuffix=""
-                yAxisInterval={dataType === 'AQI' ? 1 : 0.1} // y축 간격 설정
-                fromZero={dataType !== 'AQI'} // y축을 0부터 시작 (AQI가 아닌 경우)
-                yAxisMinValue={getYMinValue()} // y축 최소값 설정
-                yAxisMaxValue={getYMaxValue()} // y축 최대값 설정 (AQI일 경우 5로 설정)
-                chartConfig={{
-                  backgroundColor: '#e26a00',
-                  backgroundGradientFrom: '#fb8c00',
-                  backgroundGradientTo: '#ffa726',
-                  decimalPlaces: 1, // 소숫점 자릿수 한 자리로 설정
-                  color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
-                  labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
-                  style: {
-                    borderRadius: 16,
-                  },
-                  propsForDots: {
-                    r: '6',
-                    strokeWidth: '2',
-                    stroke: '#ffa726',
-                  },
-                  withInnerLines: true, // 내부 라인 표시
-                }}
-                bezier
-                style={styles.chart}
-              />
-            </ScrollView>
-          </View>
-        </>
-      ) : (
-        <Text>데이터가 없습니다.</Text>
-      )}
+      <View style={styles.bgWhite}>
+        {loading ? (
+          <ActivityIndicator size="large" color="#0000ff" />
+        ) : (
+          renderBarChart()
+        )}
+        {error && <Text style={styles.errorText}>{error}</Text>}
+      </View>
     </View>
   );
 };
@@ -225,35 +237,44 @@ const AirQualityStatusChart = ({ label, dataType, timeRange }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
     padding: getResponsivePadding(20),
   },
-  yAxisLabel: {
-    marginRight: getResponsiveMargin(10),
-    fontSize: getResponsiveFontSize(14),
-    color: 'black',
+  chartTitle: {
+    fontSize: getResponsiveFontSize(16),
+    fontWeight: '500',
+    color: '#000000',
+    paddingBottom: getResponsivePadding(10),
   },
-  xAxisLabel: {
-    textAlign: 'center',
-    fontSize: getResponsiveFontSize(14),
-    color: 'black',
-    marginTop: getResponsiveMargin(10),
+  bgWhite: {
+    backgroundColor: '#fff',
+    padding: getResponsivePadding(20),
+    borderRadius: getResponsiveMargin(5),
   },
-  title: {
-    fontSize: getResponsiveFontSize(18),
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginBottom: getResponsiveMargin(20),
+  tabBar: {
+    backgroundColor: '#f2f2f2',
+    borderRadius: getResponsiveMargin(5),
+    elevation: 0,
   },
-  loadingContainer: {
+  tabBarLabel: {
+    color: '#555555',
+    fontSize: 14,
+  },
+  tabBarLabelFocused: {
+    color: '#000000',
+    fontWeight: '500',
+  },
+  indicator: {
+    backgroundColor: 'transparent',
+  },
+  chartContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  chart: {
-    marginVertical: getResponsiveMargin(8),
-    borderRadius: 16,
-    paddingVertical: getResponsivePadding(20),
+  errorText: {
+    color: 'red',
+    textAlign: 'center',
+    marginTop: 20,
   },
 });
 

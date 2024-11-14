@@ -35,7 +35,7 @@ const Pm10Component = () => {
         const pm10Data = items.pm10Value; // 데이터를 적절히 확인하세요
         setPm10(pm10Data || '정보 없음');
       } else {
-        console.error('Unexpected PM10 response format:', result);
+        // console.error('Unexpected PM10 response format:', result);
       }
     } catch (error) {
       console.error('Error fetching PM10:', error);

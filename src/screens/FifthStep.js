@@ -1,39 +1,61 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
+import React, { useContext, useState, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Image, Dimensions } from 'react-native';
+import { 
+  getResponsiveFontSize, 
+  getResponsivePadding, 
+  getResponsiveMargin, 
+  getResponsiveWidth, 
+  getResponsiveHeight 
+} from '../utils/utils';
+import { UserContext } from '../context/UserContext';
+import AirQualityItem from '../components/AirQualityItem';
 
-const FifthStep = ({ navigation }) => {
-  const suggestedNicknames = ['연구소', '휴게실', '거실', '서재', '침실'];
-  const [nickname, setNickname] = useState('');
+const { width: screenWidth } = Dimensions.get('window');
+const isTablet = screenWidth >= 768;
+
+const FifthStep = ({ route, navigation }) => {
+  const { nickname, serialNumber } = route.params; // FourthStep에서 전달된 닉네임과 시리얼 넘버 받기
+  const { nickname: userNickname, setSerialNumber, devices, setDevices } = useContext(UserContext); // UserContext에서 필요한 상태 가져오기
+
+  const [airQualityData, setAirQualityData] = useState([]);
 
   useEffect(() => {
-    const randomNickname = suggestedNicknames[Math.floor(Math.random() * suggestedNicknames.length)];
-    setNickname(randomNickname);
-  }, []);
+    setSerialNumber(serialNumber);
+    addDeviceNickname(nickname);
+  }, [serialNumber, nickname, setSerialNumber]);
+
+  const addDeviceNickname = (nickname) => {
+    // 기기가 중복으로 추가되지 않도록 확인
+    if (!devices.some(device => device.value === nickname)) {
+      setDevices((prevDevices) => [...prevDevices, { label: nickname, value: nickname }]);
+    }
+  };
 
   const handleComplete = () => {
     console.log('설정된 닉네임:', nickname);
-    navigation.navigate('Home'); // MyHome.js로 이동
+    console.log('시리얼 넘버:', serialNumber);
+    navigation.navigate('MyHome', { nickname, serialNumber, airQualityData }); // MyHome으로 이동하면서 닉네임과 시리얼 넘버 전달
   };
 
-  const handleAddDevice = () => {
-    console.log('기기 추가 등록');
-    navigation.navigate('DeviceRegistration'); // DeviceRegistration.js로 이동
+  const handleDataFetched = (fetchedData) => {
+    setAirQualityData(fetchedData);
   };
 
   return (
     <View style={styles.container}>
       <View style={styles.contentContainer}>
         <View style={styles.contentTit}>
-          <Text style={styles.title}>환경123님의 <Text style={[styles.title, styles.bold]}>보티연구소</Text> 등록 완료!</Text>
+          <Text style={styles.title}>{userNickname}님의 <Text style={[styles.title, styles.bold]}>{nickname}</Text> 등록 완료!</Text>
           <Text style={styles.subtitle}>이제 기기의 다양한 환경을 확인해보세요.</Text>
         </View>
         <Image source={require('../assets/images/device_img.png')} style={styles.deviceImage} />
         <View style={styles.contentInput}>
+          <AirQualityItem serialNumber={serialNumber} onDataFetched={handleDataFetched} />
           <View style={styles.footer}>
             <TouchableOpacity style={styles.continueButton} onPress={handleComplete}>
               <Text style={styles.continueButtonText}>완료</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.addButton} onPress={handleAddDevice}>
+            <TouchableOpacity style={styles.addButton} onPress={() => navigation.navigate('SecondStep')}>
               <Text style={styles.addButtonText}>기기추가등록</Text>
             </TouchableOpacity>
           </View>
@@ -46,52 +68,12 @@ const FifthStep = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
+    padding: getResponsivePadding(20),
     backgroundColor: '#fff',
-  },
-  stepContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginVertical: 20,
-  },
-  stepButtonActive: {
-    width: 50,
-    height: 50,
-    backgroundColor: '#1e90ff',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 100,
-    marginHorizontal: 5,
-    borderWidth: 2,
-    borderColor: '#1e90ff',
-  },
-  stepButtonInactive: {
-    width: 50,
-    height: 50,
-    borderWidth: 2,
-    borderColor: '#ccc',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 100,
-    marginHorizontal: 5,
-  },
-  stepTextActive: {
-    color: '#fff',
-    fontWeight: 'bold',
-  },
-  stepTextInactive: {
-    color: '#ccc',
-  },
-  line: {
-    width: 30,
-    height: 2,
-    backgroundColor: '#ccc',
-    marginHorizontal: 5,
   },
   contentContainer: {
     alignItems: 'center',
-    padding: 50,
+    padding: getResponsivePadding(50),
     justifyContent: 'space-between',
     height: '80%',
   },
@@ -99,10 +81,10 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   title: {
-    fontSize: 25,
+    fontSize: getResponsiveFontSize(25),
     fontWeight: '500',
     textAlign: 'left',
-    marginBottom: 10,
+    marginBottom: getResponsiveMargin(10),
     color: '#000',
   },
   bold: {
@@ -110,46 +92,46 @@ const styles = StyleSheet.create({
     color: '#1e90ff',
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: getResponsiveFontSize(16),
     color: '#666',
-    marginBottom: 20,
+    marginBottom: getResponsiveMargin(20),
   },
   contentInput: {
     width: '100%',
     alignItems: 'center',
   },
   deviceImage: {
-    width: 300,
-    height: 150,
+    width: isTablet ? getResponsiveWidth(60) : getResponsiveWidth(80),
+    height: isTablet ? getResponsiveHeight(20) : getResponsiveHeight(30),
     resizeMode: 'contain',
-    marginVertical: 20,
+    marginVertical: getResponsiveMargin(20),
   },
   footer: {
     width: '100%',
-    paddingTop: 20,
+    paddingTop: getResponsivePadding(20),
   },
   continueButton: {
     width: '100%',
     backgroundColor: '#1e90ff',
-    paddingVertical: 15,
-    paddingHorizontal: 30,
+    paddingVertical: getResponsivePadding(15),
+    paddingHorizontal: getResponsivePadding(30),
     borderRadius: 4,
-    marginBottom: 10,
+    marginBottom: getResponsiveMargin(10),
   },
   addButton: {
     borderColor: '#002060',
     borderWidth: 1,
-    padding: 15,
+    padding: getResponsivePadding(15),
     borderRadius: 5,
     alignItems: 'center',
   },
   addButtonText: {
     color: '#002060',
-    fontSize: 16,
+    fontSize: getResponsiveFontSize(16),
   },
   continueButtonText: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: getResponsiveFontSize(16),
     fontWeight: 'bold',
     textAlign: 'center',
   },

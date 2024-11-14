@@ -39,10 +39,10 @@ const TemperatureComponent = ({ onTemperatureUpdate }) => {
         setTemperature(temperatureData.obsrValue);
         onTemperatureUpdate(temperatureData.obsrValue);
       } else {
-        console.error('Unexpected temperature response format:', response.data);
+        // console.error('Unexpected temperature response format:', response.data);
       }
     } catch (error) {
-      console.error('Error fetching temperature:', error);
+      // console.error('Error fetching temperature:', error);
     }
   };
 

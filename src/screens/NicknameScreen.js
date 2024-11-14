@@ -1,22 +1,51 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image } from 'react-native';
+import React, { useState, useEffect, useContext } from 'react';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, Alert } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import axios from 'axios';
 import { launchImageLibrary } from 'react-native-image-picker';
-import { getResponsiveFontSize, getResponsivePadding, getResponsiveMargin, getResponsiveIconSize, getResponsiveImageSize } from '../utils/utils'; // 유틸리티 함수 임포트
+import { getResponsiveFontSize, getResponsivePadding, getResponsiveMargin, getResponsiveIconSize, getResponsiveImageSize } from '../utils/utils';
+import { UserContext } from '../context/UserContext';
 
-const NicknameScreen = ({ navigation }) => {
-  const [nickname, setNickname] = useState('');
-  const [profileImage, setProfileImage] = useState(null);
+const NicknameScreen = ({ navigation, route }) => {
+  const { userName, setNickname, setProfileImage } = useContext(UserContext);
+  const [nickname, setLocalNickname] = useState('');
+  const [profileImage, setLocalProfileImage] = useState(null);
 
   useEffect(() => {
-    setNickname(generateRandomNickname());
+    setLocalNickname(generateRandomNickname());
   }, []);
 
-  const handleContinue = () => {
-    // 사용자 정보 제출 로직 구현
-    console.log('Nickname:', nickname);
-    console.log('Profile Image:', profileImage);
-    navigation.navigate('InvitationScreen'); // 초대장 보내기 화면으로 이동
+  const handleContinue = async () => {
+    const requestData = {
+      UserName: userName,
+      NickName: nickname,
+      ImgRoot: profileImage
+    };
+
+    console.log('Sending data to server:', requestData);
+
+    try {
+      const response = await axios.post('http://monitoring.votylab.com/IEQ/IEQ/CreateIEQPart2', requestData);
+      console.log('Response data:', response.data);
+
+      if (response.data.code === 1) {
+        setNickname(nickname);
+        setProfileImage(profileImage);
+
+        Alert.alert('성공', '다음 단계로 진행합니다.', [
+          { text: '확인', onPress: () => navigation.navigate('InvitationScreen', {
+            ...route.params,
+            NickName: nickname,
+            ImgRoot: profileImage,
+          }) },
+        ]);
+      } else {
+        Alert.alert('오류', response.data.codeExplain);
+      }
+    } catch (error) {
+      console.error('API 요청 오류:', error);
+      Alert.alert('오류', '서버와의 통신에 실패했습니다.');
+    }
   };
 
   const handleImagePicker = () => {
@@ -26,7 +55,7 @@ const NicknameScreen = ({ navigation }) => {
       } else if (response.error) {
         console.log('ImagePicker Error: ', response.error);
       } else if (response.assets && response.assets.length > 0) {
-        setProfileImage(response.assets[0].uri);
+        setLocalProfileImage(response.assets[0].uri);
       }
     });
   };
@@ -56,7 +85,7 @@ const NicknameScreen = ({ navigation }) => {
       <TextInput 
         style={[styles.input, styles.inputTextColor]} 
         value={nickname} 
-        onChangeText={setNickname} 
+        onChangeText={setLocalNickname} 
         placeholder="환경123" 
         placeholderTextColor="#999"
       />
@@ -84,7 +113,7 @@ const styles = StyleSheet.create({
   stepText: {
     fontSize: getResponsiveFontSize(50),
     color: '#3261E6',
-    fontWeight:'bold'
+    fontWeight: 'bold',
   },
   title: {
     fontSize: getResponsiveFontSize(30),
@@ -133,7 +162,7 @@ const styles = StyleSheet.create({
   continueButtonText: {
     color: '#fff',
     fontSize: getResponsiveFontSize(16),
-    fontWeight: '500'
+    fontWeight: '500',
   },
 });
 

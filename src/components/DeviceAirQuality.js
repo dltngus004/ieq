@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image, Dimensions } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { getStatusAndProgress } from '../utils/AirQualityUtils.js';
-import AirQualityItem from '../components/AirQualityItem';
 import { 
   getResponsiveFontSize, 
   getResponsivePadding, 
@@ -14,13 +13,13 @@ import {
 const { width: screenWidth } = Dimensions.get('window');
 const isTablet = screenWidth >= 768;
 
-const DeviceAirQuality = ({ navigation, aqi }) => {
+const DeviceAirQuality = ({ aqi, airQualityData, deviceNickname, goToAirQualityDetails }) => {
   const [temp, setTemp] = useState(null);
   const [humi, setHumi] = useState(null);
   const [tvoc, setTvoc] = useState(null);
 
-  const handleDataFetched = (fetchedData) => {
-    fetchedData.forEach(item => {
+  useEffect(() => {
+    airQualityData.forEach(item => {
       switch(item.label) {
         case 'Temp':
           setTemp(parseFloat(item.value));
@@ -35,7 +34,7 @@ const DeviceAirQuality = ({ navigation, aqi }) => {
           break;
       }
     });
-  };
+  }, [airQualityData]);
 
   const { status, message } = getStatusAndProgress('AQI', aqi);
   const { status: tempStatus } = getStatusAndProgress('Temp', temp);
@@ -57,9 +56,8 @@ const DeviceAirQuality = ({ navigation, aqi }) => {
 
   return (
     <View style={styles.container}>
-      <AirQualityItem onDataFetched={handleDataFetched} />
-      <Text style={styles.deviceName}>보티 연구소</Text>
-      <TouchableOpacity style={styles.touchableContainer} onPress={() => navigation.navigate('AirQualityDetails')}>
+      <Text style={styles.deviceName}>{deviceNickname}</Text>
+      <TouchableOpacity style={styles.touchableContainer} onPress={goToAirQualityDetails}>
         <View style={styles.airQualityScore}>
           <View style={styles.airQualityScore}>
             {getImageSource(status) && (
@@ -121,8 +119,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   statusImage: {
-    width: isTablet ? getResponsiveWidth(10) : getResponsiveWidth(16),
-    height: isTablet ? getResponsiveHeight(10) : getResponsiveHeight(12),
+    width: isTablet ? getResponsiveWidth(11) : getResponsiveWidth(16),
+    height: isTablet ? getResponsiveHeight(7.2) : getResponsiveHeight(12),
     marginRight: getResponsiveMargin(20),
   },
   airQualityText: {
@@ -132,8 +130,8 @@ const styles = StyleSheet.create({
   airQualityTextStatus: {
     fontSize: getResponsiveFontSize(20),
     color: '#000',
-    textAlign: 'center', // 텍스트 정렬
-    width: '100%', // 전체 너비 사용
+    textAlign: 'center',
+    width: '100%',
   },
   airQualityScoreText: {
     fontSize: getResponsiveFontSize(50),
@@ -152,7 +150,7 @@ const styles = StyleSheet.create({
   BdItem: {
     backgroundColor: '#3F4771',
     width: isTablet ? getResponsiveWidth(18) : getResponsiveWidth(27),
-    height: isTablet ? getResponsiveHeight(18) : getResponsiveHeight(20),
+    height: isTablet ? getResponsiveHeight(12) : getResponsiveHeight(20),
     borderRadius: getResponsiveWidth(60),
     alignItems: 'center',
     marginBottom: getResponsiveMargin(10),
@@ -180,11 +178,10 @@ const styles = StyleSheet.create({
   },
   managementText: {
     marginTop: getResponsiveMargin(5),
-    fontSize: getResponsiveFontSize(14),
+    fontSize: getResponsiveFontSize(15),
     color: '#000',
+    fontWeight: '500'
   },
 });
-
-
 
 export default DeviceAirQuality;

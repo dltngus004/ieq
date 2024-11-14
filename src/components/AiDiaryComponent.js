@@ -38,7 +38,7 @@ const AiDiaryComponent = ({ moodItems, setMoodItems }) => {
 
     const fetchEntriesForDate = (date) => {
         const formattedDate = date.slice(2).replace(/-/g, ''); // '2024-07-01' -> '240701'
-        console.log('Fetching diary entries for date:', formattedDate);
+        // console.log('Fetching diary entries for date:', formattedDate);
         fetchDiaryEntries('test200', formattedDate, (error, data) => {
             if (error) {
                 console.log('Error response:', error);
@@ -510,13 +510,13 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     picker: {
-        flex: 1,
-        height: getResponsiveHeight(50),
-        backgroundColor: '#cdd1dd',
+        flex: 0.5,
+        backgroundColor: '#f1f1f1',
         borderWidth: 2,
         borderRadius: getResponsiveMargin(5),
         marginRight: getResponsiveMargin(10),
         borderColor: '#ddd',
+        color: '#808086'
     },
 });
 

@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Dimensions } from 'react-native';
+import React, { useState, useContext } from 'react';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Dimensions, Alert } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import axios from 'axios';
 import AddressSearchModal from '../components/AddressSearchModal';
-import { getResponsiveFontSize, getResponsivePadding, getResponsiveMargin, getResponsiveIconSize, getResponsiveImageSize } from '../utils/utils'; // 유틸리티 함수 임포트
+import { getResponsiveFontSize, getResponsivePadding, getResponsiveMargin, getResponsiveIconSize, getResponsiveImageSize } from '../utils/utils';
+import { UserContext } from '../context/UserContext';
 
 const { width: screenWidth } = Dimensions.get('window');
 const isTablet = screenWidth >= 768;
@@ -14,19 +16,71 @@ const UserInfoScreen = ({ navigation }) => {
   const [address, setAddress] = useState('');
   const [detailedAddress, setDetailedAddress] = useState('');
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const { setUserName } = useContext(UserContext);
 
   const handleAddressSelect = (selectedAddress) => {
     setAddress(selectedAddress);
+    setIsModalVisible(false);
   };
 
-  const handleContinue = () => {
-    // 사용자 정보 제출 로직 구현
-    console.log('ID:', id);
-    console.log('Birth Date:', birthDate);
-    console.log('Gender:', gender);
-    console.log('Address:', address);
-    console.log('Detailed Address:', detailedAddress);
-    navigation.navigate('NicknameScreen'); // 스텝 2로 이동
+  const validateBirthDate = (date) => {
+    const regex = /^\d{4}\d{2}\d{2}$/;
+    if (!regex.test(date)) {
+      return false;
+    }
+    const year = parseInt(date.substring(0, 4), 10);
+    const month = parseInt(date.substring(4, 6), 10);
+    const day = parseInt(date.substring(6, 8), 10);
+    if (year < 1900 || year > new Date().getFullYear()) {
+      return false;
+    }
+    if (month < 1 || month > 12) {
+      return false;
+    }
+    const daysInMonth = new Date(year, month, 0).getDate();
+    if (day < 1 || day > daysInMonth) {
+      return false;
+    }
+    return true;
+  };
+
+  const handleContinue = async () => {
+    if (!validateBirthDate(birthDate)) {
+      Alert.alert("오류", "생년월일 형식이 맞지 않습니다. YYYYMMDD 형식으로 입력해주세요.");
+      return;
+    }
+
+    const requestData = {
+      UserName: id,
+      BirthDay: birthDate,
+      Gender: gender === '여성' ? 'F' : 'M',
+      Street: address,
+      DetailStreet: detailedAddress
+    };
+
+    console.log('Sending data to server:', requestData);
+
+    try {
+      const response = await axios.post('http://monitoring.votylab.com/IEQ/IEQ/CreateIEQPart1', requestData);
+      console.log('Response data:', response.data);
+      if (response.data.code === 1) {
+        setUserName(id);
+        const loginResponse = await axios.post('http://monitoring.votylab.com/IEQ/IEQ/IEQLogin', {
+          UserId: id,
+          AppReq: 'kakao',
+          AppReq2: '1',
+          AppReq3: '1440'
+        });
+        console.log('로그인 성공:', loginResponse.data);
+
+        Alert.alert("성공", "다음 단계로 진행합니다.", [{ text: "확인", onPress: () => navigation.navigate('NicknameScreen') }]);
+      } else {
+        Alert.alert("오류", response.data.codeExplain);
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      Alert.alert("오류", "서버와의 통신에 실패했습니다.");
+    }
   };
 
   const getGenderButtonStyle = (currentGender) => [
@@ -41,14 +95,14 @@ const UserInfoScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      <ScrollView contentContainerStyle={styles.headerContainer}>
+      <View style={styles.headerContainer}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
           <Ionicons name="chevron-back" size={getResponsiveIconSize(40)} color="#BFBFBF" style={styles.backIcon} />
         </TouchableOpacity>
         <Text style={styles.stepText}>01</Text>
         <Text style={styles.title}>정보를 입력하세요.</Text>
         <Text style={styles.subtitle}>IEQ를 더 편하게 이용하기 위해 입력 해주세요.</Text>
-      </ScrollView>
+      </View>
       <ScrollView contentContainerStyle={styles.formContainer}>
         <Text style={styles.label}>아이디</Text>
         <TextInput
@@ -65,6 +119,8 @@ const UserInfoScreen = ({ navigation }) => {
           onChangeText={setBirthDate}
           placeholder="생년월일 8자리 (YYYYMMDD)"
           placeholderTextColor="#999"
+          keyboardType="numeric"
+          maxLength={8}
         />
         <Text style={styles.label}>성별</Text>
         <View style={styles.genderContainer}>
@@ -85,7 +141,7 @@ const UserInfoScreen = ({ navigation }) => {
         <TouchableOpacity style={styles.addressContainer} onPress={() => setIsModalVisible(true)}>
           <Ionicons name="location-sharp" size={getResponsiveIconSize(24)} color="#000" style={styles.addressIcon} />
           <TextInput
-            style={ styles.inputTextColor}
+            style={styles.inputTextColor}
             value={address}
             editable={false}
             placeholder="건물, 지번 또는 도로명 검색"
@@ -215,6 +271,7 @@ const styles = StyleSheet.create({
     padding: getResponsivePadding(15),
     borderRadius: 5,
     alignItems: 'center',
+    marginBottom: getResponsiveMargin(10),
   },
   continueButtonText: {
     color: '#fff',

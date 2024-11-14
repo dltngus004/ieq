@@ -1,7 +1,7 @@
 // EditNickname.js
 
-import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Button, StyleSheet } from 'react-native';
+import React, { useState, useContext } from 'react';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { 
   getResponsiveFontSize, 
@@ -10,24 +10,26 @@ import {
   getResponsiveWidth, 
   getResponsiveHeight 
 } from '../utils/utils';
+import { UserContext } from '../context/UserContext';
 
 const EditNickname = ({ navigation, route }) => {
-  const [nickname, setNickname] = useState(route.params.nickname);
+  const { setNickname } = useContext(UserContext);
+  const [nickname, setLocalNickname] = useState(route.params.nickname);
   const [inputLength, setInputLength] = useState(nickname.length);
 
   const handleSave = () => {
-    // Save the new nickname (e.g., update the state, send to the server, etc.)
+    setNickname(nickname); // Update the nickname in UserContext
     navigation.goBack();
   };
 
   const handleClearInput = () => {
-    setNickname('');
+    setLocalNickname('');
     setInputLength(0);
   };
 
   const handleInputChange = (text) => {
     if (text.length <= 10) {
-      setNickname(text);
+      setLocalNickname(text);
       setInputLength(text.length);
     }
   };
@@ -75,13 +77,10 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     backgroundColor: '#fff',
     paddingHorizontal: getResponsivePadding(10),
+    justifyContent: 'space-between'
   },
   input: {
-    borderWidth: 1,
-    borderColor: '#ccc',
     padding: getResponsivePadding(15),
-    borderRadius: 5,
-    marginBottom: getResponsiveMargin(50),
   },
   inputTextColor: {
     color: '#000', // 텍스트 색상 설정

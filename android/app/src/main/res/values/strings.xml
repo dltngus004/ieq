@@ -1,3 +1,7 @@
 <resources>
     <string name="app_name">IEQProject</string>
+    <string name="kakao_app_key">344d21d198d82896a2174f18482a2724</string>
+    <string name="naver_client_id">UGjW8gayDKYwQkHMdrI_</string>
+    <string name="naver_client_secret">JhOC9C4Apa</string>
+    <string name="naver_client_name">ieqproject</string>
 </resources>

@@ -2,23 +2,34 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, Alert } from 'react-native';
 import axios from 'axios';
 
-const AirQualityItem = ({ onDataFetched }) => {
+const AirQualityItem = ({ onDataFetched, serialNumber, fetchDataTrigger }) => {
   const [loading, setLoading] = useState(true);
+  const [data, setData] = useState([]);
 
   useEffect(() => {
-    let isMounted = true;
+    console.log('Received Serial Number:', serialNumber); // serialNumber 출력
+
+    if (!serialNumber) {
+      console.error('Serial number is not provided');
+      return;
+    }
 
     const fetchData = async () => {
+      setLoading(true);
       try {
         const requestData = {
-          UserId: 'IEQAAAB101TEST240426',
-          AppReq: 'AQI, TVOC, eCO2, Temp, Humi, Illuminace, Noise'
+          UserId: serialNumber,
+          AppReq: 'AQI, TVOC, eCO2, Temp, Humi, Illuminace, Noise',
         };
 
-        const response = await axios.post('http://monitoring.votylab.com/IEQ/IEQ/GetIEQLastDatasToSN', requestData);
+        const url = `http://monitoring.votylab.com/IEQ/IEQ/GetIEQLastDatasToSN?timestamp=${new Date().getTime()}`;
+        console.log('Fetching data with request:', requestData);
+
+        const response = await axios.post(url, requestData);
 
         if (response.status === 200) {
           const responseData = response.data;
+          console.log('Fetched data:', responseData);
 
           const newData = responseData.newDevices.map(device => {
             const rawValue = parseFloat(device.dataType === 'I' ? device.pvData : device.svData);
@@ -30,7 +41,8 @@ const AirQualityItem = ({ onDataFetched }) => {
             };
           });
 
-          if (isMounted) {
+          setData(newData);
+          if (onDataFetched) {
             onDataFetched(newData);
           }
         } else {
@@ -40,18 +52,12 @@ const AirQualityItem = ({ onDataFetched }) => {
         console.error('Error fetching data:', error);
         Alert.alert('Network Error', 'Failed to fetch data');
       } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
+        setLoading(false);
       }
     };
 
     fetchData();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [onDataFetched]);
+  }, [serialNumber, fetchDataTrigger]); // fetchDataTrigger를 종속성 배열에 추가합니다.
 
   const getIconName = (chName) => {
     switch (chName) {
@@ -79,7 +85,7 @@ const AirQualityItem = ({ onDataFetched }) => {
     }
   };
 
-  if (loading) { 
+  if (loading) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#0000ff" />
@@ -87,7 +93,13 @@ const AirQualityItem = ({ onDataFetched }) => {
     );
   }
 
-  return null;
+  return (
+    <View style={styles.container}>
+      {data.map((item, index) => (
+        <Text View style={styles.container} key={index}>{item.label}: {item.value}</Text>
+      ))}
+    </View>
+  );
 };
 
 const styles = StyleSheet.create({
@@ -95,6 +107,10 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  container: {
+    padding: 0,
+    fontSize: 0,
   },
 });
 

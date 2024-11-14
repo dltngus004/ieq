@@ -1,6 +1,8 @@
-import React from 'react';
+import React, { useContext } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert, Image } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
+import axios from 'axios';
+import { launchImageLibrary } from 'react-native-image-picker';
 import { 
   getResponsiveFontSize, 
   getResponsivePadding, 
@@ -8,26 +10,46 @@ import {
   getResponsiveWidth, 
   getResponsiveHeight 
 } from '../utils/utils';
+import { UserContext } from '../context/UserContext';
 
 const MyPageScreen = ({ navigation }) => {
-  const familyMembers = []; // IEQ 구성원이 없는 상태를 테스트하기 위해 빈 배열로 설정
+  const { userName, nickname, profileImage, email, setProfileImage, resetUserContext } = useContext(UserContext);
+  const familyMembers = [];
 
-  const handleLogout = () => {
-    Alert.alert(
-      "로그아웃",
-      "로그아웃하시겠습니까?",
-      [
-        {
-          text: "취소",
-          style: "cancel"
-        },
-        {
-          text: "로그아웃하기",
-          onPress: () => navigation.navigate('Onboarding')
-        }
-      ],
-      { cancelable: false }
-    );
+  const handleLogout = async () => {
+    try {
+      const response = await axios.post('http://monitoring.votylab.com/IEQ/IEQ/IEQLogin', {
+        UserId: userName,
+        AppReq: 'kakao',
+        AppReq2: '2',
+        AppReq3: '1440'
+      });
+
+      console.log('로그아웃 응답:', response.data);
+
+      if (response.data.code === 2) {
+        resetUserContext();
+        Alert.alert('로그아웃', '로그아웃에 성공했습니다.');
+        navigation.navigate('Onboarding');
+      } else {
+        Alert.alert('로그아웃 실패', '로그아웃에 실패했습니다. 다시 시도해주세요.');
+      }
+    } catch (error) {
+      console.error('로그아웃 오류:', error);
+      Alert.alert('로그아웃 오류', '로그아웃 중 오류가 발생했습니다. 다시 시도해주세요.');
+    }
+  };
+
+  const handleImagePicker = () => {
+    launchImageLibrary({ mediaType: 'photo' }, (response) => {
+      if (response.didCancel) {
+        console.log('User cancelled image picker');
+      } else if (response.error) {
+        console.log('ImagePicker Error: ', response.error);
+      } else if (response.assets && response.assets.length > 0) {
+        setProfileImage(response.assets[0].uri);
+      }
+    });
   };
 
   return (
@@ -35,36 +57,38 @@ const MyPageScreen = ({ navigation }) => {
       <Text style={styles.profileTitle}>로그인 정보</Text>
       <View style={styles.profileContainer}>
         <View style={styles.row}>
-          <Image source={require('../assets/images/profile.png')} style={styles.avatar} />
+          <TouchableOpacity onPress={handleImagePicker}>
+            <Image source={profileImage ? { uri: profileImage } : require('../assets/images/profile.png')} style={styles.avatar} />
+          </TouchableOpacity>
           <View style={styles.profileInfo}>
-            <Text style={styles.profileName}>이보티</Text>
+            <Text style={styles.profileName}>{nickname}</Text>
           </View>
         </View>
         <View style={styles.accountWrap}>
-          <TouchableOpacity style={styles.rowWrap} onPress={() => navigation.navigate('EditNickname', { nickname: '환경123' })}>
-            <Text style={styles.nickname}>닉네임 : 환경123</Text>
+          <TouchableOpacity style={styles.rowWrap} onPress={() => navigation.navigate('EditNickname', { nickname })}>
+            <Text style={styles.nickname}>닉네임 : {nickname}</Text>
             <View style={styles.row}>
-              <Text style={styles.nickname}>환경123</Text>
+              <Text style={styles.nickname}>{nickname}</Text>
               <Icon name="chevron-forward" size={24} color="#000" />
             </View>
           </TouchableOpacity>
           <View style={styles.rowWrap}>
             <Text style={styles.connectedAccountLabel}>연결된 계정</Text>
-            <Text style={styles.connectedAccount}>voty@kakao.com</Text>
+            <Text style={styles.connectedAccount}>{email}</Text>
           </View>
         </View>
       </View>
       <Text style={styles.profileTitle}>IEQ 구성원</Text>
       <View style={styles.familyContainer}>
         <View style={styles.familyMember}>
-          <Image source={require('../assets/images/profile.png')} style={styles.avatar} />
+          <Image source={profileImage ? { uri: profileImage } : require('../assets/images/profile.png')} style={styles.avatar} />
           <View style={styles.profileInfo}>
             <View style={styles.row}>
-              <Text style={styles.profileName}>이보티</Text>
+              <Text style={styles.profileName}>{nickname}</Text>
               <Text style={styles.role}>관리자</Text>
             </View>
             <View>
-              <Text style={styles.nickname}>닉네임 : 환경123</Text>
+              <Text style={styles.nickname}>닉네임 : {nickname}</Text>
             </View>
           </View>
         </View>

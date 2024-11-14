@@ -1,11 +1,17 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
-import { Icon, Overlay } from 'react-native-elements';
-import NotificationIcon from '../components/NotificationIcon';
+import React, { useEffect, useState, useContext } from 'react';
+import { View, Text, StyleSheet, Image, TouchableOpacity, Alert } from 'react-native';
+import { Overlay } from 'react-native-elements';
+import axios from 'axios';
+import { UserContext } from '../context/UserContext';
 
 const MainProfile = ({ navigation }) => {
+  const { userName, nickname, profileImage } = useContext(UserContext);
   const [visible, setVisible] = useState(false);
-  const [hasNotifications, setHasNotifications] = useState(true); // 알림 여부 상태 추가
+
+  useEffect(() => {
+    console.log('MainProfile Nickname:', nickname);
+    console.log('MainProfile Profile Image:', profileImage);
+  }, [nickname, profileImage]);
 
   const toggleOverlay = () => {
     setVisible(!visible);
@@ -16,37 +22,43 @@ const MainProfile = ({ navigation }) => {
     navigation.navigate('MyPageScreen');
   };
 
-  const logout = () => {
+  const logout = async () => {
     setVisible(false);
-    console.log('로그아웃');
-  };
+    try {
+      const response = await axios.post('http://monitoring.votylab.com/IEQ/IEQ/IEQLogin', {
+        UserId: userName,
+        AppReq: 'kakao',
+        AppReq2: '2',
+        AppReq3: '1440'
+      });
 
-  const goToNotifications = () => {
-    navigation.navigate('Notifications');
+      if (response.data.code === 2) {
+        Alert.alert('로그아웃', '로그아웃에 성공했습니다.');
+      } else {
+        Alert.alert('로그아웃 실패', '로그아웃에 실패했습니다. 다시 시도해주세요.');
+      }
+    } catch (error) {
+      console.error('로그아웃 오류:', error);
+      Alert.alert('로그아웃 오류', '로그아웃 중 오류가 발생했습니다. 다시 시도해주세요.');
+    }
   };
-
-  const imageUrls = [
-    require('../assets/images/profile.png'),
-    require('../assets/images/bell.png'),
-  ];
 
   return (
     <View style={styles.profileContainer}>
       <View style={styles.profileContainer}>
-        {imageUrls.length > 1 && (
-          <TouchableOpacity onPress={toggleOverlay}>
-            <Image source={imageUrls[0]} style={styles.profileImage} />
-          </TouchableOpacity>
-        )}
-        <Text style={styles.greetingText}>환경123님, 반가워요!</Text>
-      </View>
-      <NotificationIcon navigation={navigation} hasNotifications={true} />
-      {/* <View style={styles.iconContainer}>
-        <TouchableOpacity onPress={goToNotifications}>
-          <Image source={imageUrls[1]} style={styles.notification} />
-          {hasNotifications && <View style={styles.notificationBadge} />}
+        <TouchableOpacity onPress={toggleOverlay}>
+          {profileImage ? (
+            <Image
+              source={{ uri: profileImage }}
+              style={styles.profileImage}
+            />
+          ) : (
+            <Image source={require('../assets/images/profile.png')} style={styles.profileImage} />
+          )}
         </TouchableOpacity>
-      </View> */}
+        <Text style={styles.greetingText}>{nickname}님, 반가워요!</Text>
+      </View>
+
       <Overlay isVisible={visible} onBackdropPress={toggleOverlay}>
         <View style={styles.overlayContainer}>
           <TouchableOpacity style={styles.overlayButton} onPress={goToMyPage}>
@@ -61,6 +73,7 @@ const MainProfile = ({ navigation }) => {
   );
 };
 
+
 const styles = StyleSheet.create({
   profileContainer: {
     alignItems: 'center',
@@ -70,27 +83,13 @@ const styles = StyleSheet.create({
   profileImage: {
     width: 50,
     height: 50,
+    borderRadius: 100,
   },
   greetingText: {
     paddingHorizontal: 20,
     fontSize: 22,
     color: '#000',
-    fontWeight: 'bold'
-  },
-  notification:{
-    width: 30,
-    height: 30,
-  }, 
-  notificationBadge: {
-    position: 'absolute',
-    right: -4,
-    top: -4,
-    backgroundColor: 'red',
-    borderRadius: 8,
-    width: 14,
-    height: 14,
-    justifyContent: 'center',
-    alignItems: 'center',
+    fontWeight: 'bold',
   },
   overlayContainer: {
     width: 400,
@@ -103,15 +102,12 @@ const styles = StyleSheet.create({
     padding: 10,
     borderRadius: 5,
     width: '100%',
-    marginVertical: 4
+    marginVertical: 4,
   },
   buttonText: {
     color: 'white',
     textAlign: 'center',
-    fontSize: 16
-  },
-  iconContainer: {
-    position: 'relative',
+    fontSize: 16,
   },
 });
 

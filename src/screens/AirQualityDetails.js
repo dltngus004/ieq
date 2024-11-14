@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, Modal, Text, TouchableOpacity, Dimensions } from 'react-native';
+import { View, StyleSheet, ScrollView, Modal, Text, TouchableOpacity, Dimensions, RefreshControl } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import { Picker } from '@react-native-picker/picker';
 import DeviceSelector from '../components/DeviceSelector';
 import AirQualityItem from '../components/AirQualityItem';
 import {
@@ -9,24 +8,28 @@ import {
   getResponsivePadding,
   getResponsiveMargin,
   getResponsiveWidth,
-  getResponsiveHeight,
 } from '../utils/utils';
 
 const { width: viewportWidth } = Dimensions.get('window');
 
-const AirQualityDetails = ({ navigation }) => {
+const AirQualityDetails = ({ navigation, route }) => {
+  const { serialNumber } = route.params; // serialNumber를 가져옵니다.
   const [data, setData] = useState([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [modalContent, setModalContent] = useState('');
+  const [refreshing, setRefreshing] = useState(false);
+  const [fetchDataTrigger, setFetchDataTrigger] = useState(0);
 
   const handleDataFetched = (fetchedData) => {
     setData(fetchedData);
+    setRefreshing(false);
+    console.log('Data fetched:', fetchedData); // 로그 추가
   };
 
   const handleItemPress = (item) => {
     const dataType = item.label;
     console.log('Navigating with item:', { ...item, dataType });
-    navigation.navigate('DetailAirQualityView', { item: { ...item, dataType } });
+    navigation.navigate('DetailAirQualityView', { item: { ...item, dataType }, serialNumber });
   };
 
   const handleInfoPress = (label) => {
@@ -34,14 +37,30 @@ const AirQualityDetails = ({ navigation }) => {
     setModalVisible(true);
   };
 
+  const handleRefresh = () => {
+    setRefreshing(true);
+    setFetchDataTrigger(prev => prev + 1); // fetchDataTrigger 값을 변경하여 데이터 갱신
+    console.log('Refresh button clicked'); // 로그 추가
+  };
+
+  useEffect(() => {
+    console.log('AirQualityDetails serialNumber:', serialNumber); // 시리얼 넘버 로그
+  }, [serialNumber]);
+
   return (
     <View style={styles.container}>
       <View style={styles.pickerContainer}>
         <DeviceSelector />
+        <TouchableOpacity onPress={handleRefresh} style={styles.refreshButton}>
+          <Icon name="refresh" size={24} color="#0000ff" />
+        </TouchableOpacity>
       </View>
       <View style={styles.AirQualityItem}>
-        <AirQualityItem onDataFetched={handleDataFetched} />
-        <ScrollView contentContainerStyle={styles.gridContainer}>
+        <AirQualityItem onDataFetched={handleDataFetched} fetchDataTrigger={fetchDataTrigger} serialNumber={serialNumber} />
+        <ScrollView
+          contentContainerStyle={styles.gridContainer}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
+        >
           {data.map((item, index) => (
             <View key={index} style={styles.itemContainer}>
               <TouchableOpacity
@@ -54,7 +73,7 @@ const AirQualityDetails = ({ navigation }) => {
                     <Icon name="info" size={20} color="#0000ff" />
                   </TouchableOpacity>
                 </View>
-                <Icon name={item.icon} size={30} color="#0000ff" />
+                <Icon name={item.icon} style={styles.icon} size={30} color="#0000ff" />
                 <Text style={styles.itemValue}>{item.value}</Text>
               </TouchableOpacity>
             </View>
@@ -131,9 +150,19 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontWeight: 'bold',
   },
+  icon: {
+    backgroundColor: '#ebf5ff',
+    padding: getResponsivePadding(20),
+    borderRadius: 100,
+    marginVertical: getResponsiveMargin(10),
+  },
   itemValue: {
     fontSize: getResponsiveFontSize(22),
     color: '#000',
+  },
+  refreshButton: {
+    marginLeft: 'auto',
+    padding: getResponsivePadding(8),
   },
   modalOverlay: {
     flex: 1,
@@ -154,5 +183,9 @@ const styles = StyleSheet.create({
   },
 });
 
-
 export default AirQualityDetails;
+
+
+
+
+

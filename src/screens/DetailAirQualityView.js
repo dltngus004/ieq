@@ -1,19 +1,26 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ScrollView, StyleSheet, View, Text, TouchableOpacity } from 'react-native';
 import AirQualityStatus from '../components/AirQualityStatus';
 import AirQualityStatusChart from '../components/AirQualityStatusChart';
-import {
-  getResponsiveFontSize,
-  getResponsivePadding,
-  getResponsiveMargin,
-} from '../utils/utils';
+import { getResponsiveFontSize, getResponsivePadding, getResponsiveMargin } from '../utils/utils';
 
 const DetailAirQualityView = ({ route }) => {
-  const { item } = route.params;
+  const { item, serialNumber } = route.params;
   const [selectedTab, setSelectedTab] = useState('hourly');
 
+  useEffect(() => {
+    console.log('DetailAirQualityView serialNumber:', serialNumber); // 시리얼 넘버 확인
+  }, [serialNumber]);
+
   const renderChart = () => {
-    return <AirQualityStatusChart label={item.label} dataType={item.dataType} timeRange={selectedTab} />;
+    return (
+      <AirQualityStatusChart
+        label={item.label}
+        dataType={item.dataType}
+        timeRange={selectedTab}
+        serialNumber={serialNumber}
+      />
+    );
   };
 
   return (

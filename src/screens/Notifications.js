@@ -1,14 +1,22 @@
-// MyHome.js
-
 import React from 'react';
-import { View, Text, StyleSheet, Image } from 'react-native';
+import { View, Text, StyleSheet, Image, Dimensions } from 'react-native';
+import { 
+  getResponsiveFontSize, 
+  getResponsivePadding, 
+  getResponsiveMargin, 
+  getResponsiveWidth, 
+  getResponsiveHeight 
+} from '../utils/utils';
+
+const { width: screenWidth } = Dimensions.get('window');
+const isTablet = screenWidth >= 768;
 
 // 임시 이미지 경로
 import deviceImage from '../assets/images/notilist.png';
 
 const Notifications = () => {
   return (
-    <View >
+    <View>
       <View style={styles.container}>
         <Text style={styles.date}>2024.05.09(수)</Text>
         <View style={styles.whiteBg}>
@@ -66,27 +74,27 @@ const Notifications = () => {
 const styles = StyleSheet.create({
   container: {
     justifyContent: 'center',
-    padding: 10,
+    padding: getResponsivePadding(10),
     backgroundColor: '#F2F4F8',
     width: '100%'
   },
   date: {
     color: '#000',
     fontWeight: 'bold',
-    fontSize: 20,
-    paddingBottom: 10
+    fontSize: getResponsiveFontSize(20),
+    paddingBottom: getResponsivePadding(10)
   },
   whiteBg: {
     backgroundColor: '#fff',
-    padding: 20,
-    borderRadius: 8,
+    padding: getResponsivePadding(20),
+    borderRadius: getResponsiveMargin(8),
     alignContent: 'flex-start',
   },
   notiList: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 10,
+    paddingVertical: getResponsivePadding(10),
     borderBottomColor: '#ddd',
     borderBottomWidth: 1
   },
@@ -94,23 +102,24 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
   },
   image: {
-    width: 60,
-    height: 60
+    width: isTablet ? getResponsiveWidth(7) : getResponsiveWidth(10),
+    height: isTablet ? getResponsiveHeight(4.5) : getResponsiveHeight(7.4),
   },
   notiBox: {
-    paddingHorizontal: 15
+    paddingHorizontal: getResponsivePadding(15)
   },
   notiTit: {
     color: '#000',
     fontWeight: 'bold',
-    fontSize: 18
+    fontSize: isTablet ? getResponsiveFontSize(18) : getResponsiveFontSize(16)
   },
   notiSub: {
     color: '#7F7F7F',
-    fontSize: 14
+    fontSize: isTablet ? getResponsiveFontSize(14) : getResponsiveFontSize(12)
   },
   listTime: {
-    color: '#A6A6A6'
+    color: '#A6A6A6',
+    fontSize: isTablet ? getResponsiveFontSize(14) : getResponsiveFontSize(10)
   }
 });
 

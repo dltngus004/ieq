@@ -11,12 +11,13 @@ const MoodQualityItem = ({ serialNumber }) => {
   const [ledColor, setLedColor] = useState('#FFFFFF');
 
   useEffect(() => {
+    console.log('Serial Number:', serialNumber); // 시리얼 번호 확인
     fetchData();
-  }, []);
+  }, [serialNumber]);
 
   const fetchData = async () => {
     try {
-      const requestData = { UserId: 'IEQAAAB101TEST240425', AppReq: 'OnOff' };
+      const requestData = { UserId: serialNumber, AppReq: 'OnOff' };
       const response = await axios.post('http://monitoring.votylab.com/IEQ/IEQ/SendIEQLED', requestData);
       if (response.status === 200) {
         setIsEnabled(response.data.newDevices[0].svData === 'On');
@@ -31,13 +32,14 @@ const MoodQualityItem = ({ serialNumber }) => {
 
   const updateLedSettings = async () => {
     const requestData = {
-      UserId: 'IEQAAAB101TEST240425',
+      UserId: serialNumber,
       IEQAPIBaseModels: [
         { AppReq: isEnabled ? "Off" : "On" }, // LED On/Off 요청
         { AppReq: "LEDBright", AppReq2: ledBright.toString() },
         { AppReq: "LEDCOLOR", AppReq2: ledColor.slice(1) } // 색상 코드의 '#' 제거
       ]
     };
+    console.log('Update LED Settings Request:', requestData); // 요청 데이터 확인
     try {
       const response = await axios.post('http://monitoring.votylab.com/IEQ/IEQ/SendIEQLED', requestData);
       if (response.status === 200) {
@@ -82,6 +84,7 @@ const MoodQualityItem = ({ serialNumber }) => {
         color={ledColor}
         onColorChange={setLedColor}
         onColorSelected={() => updateLedSettings()}  // 색상 선택 완료 시 설정 업데이트
+        style={{ height: 200, width: 200 }}
       />
       <Button title="Update LED Settings" onPress={updateLedSettings} />
     </View>
